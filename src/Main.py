@@ -1,4 +1,6 @@
-import re, os
+import os
+
+from src.utils.environment import Environment
 
 from src.processors.processor import Processor
 
@@ -9,10 +11,12 @@ class Main:
 	def __init__(self, engine_name=None):
 		self.engine_name = engine_name
 
+		self.repo_root = Environment("dev").get_value("v3_path")
+
 		if not self.engine_name:
 			raise LookupError()
 
-		self.engine_path = Main.ENGINES_LOCALTION + "/" + self.engine_name
+		self.engine_path = self.repo_root + "/" + self.engine_name
 		if not os.path.isdir(self.engine_path):
 			raise AttributeError()
 
