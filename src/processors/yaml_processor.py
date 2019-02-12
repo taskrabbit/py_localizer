@@ -6,9 +6,10 @@ import json
 
 
 class YAMLProcessor(BasicProcessor):
-	def __init__(self, resource_dict):
-		BasicProcessor.__init__(self, resource_dict)
-		self.flat_dict = {}
+	def __init__(self, search_path, resource_dict):
+		BasicProcessor.__init__(self, search_path, resource_dict)
+		self.resource_dict = resource_dict
+		self.yamls = {}
 
 	def process(self, locale, path):
 		yaml_file = None
@@ -27,24 +28,24 @@ class YAMLProcessor(BasicProcessor):
 		self.set_key_value_types()
 
 	def print_yamls(self):
-		for key, value in self.flat_dict.items():
+		for key, value in self.resource_dict.items():
 			print("{}".format("="*100))
 			print("key: {}".format(key))
 			for locale_key, locale_value in value.items():
 				print("\t{} : {}".format(locale_key, locale_value))
 
 		fh = open('resources.json', 'w')
-		fh.write(json.dumps(self.flat_dict))
+		fh.write(json.dumps(self.resource_dict))
 		fh.close()
 
 	def set_key_value_types(self):
-		for key, value in self.flat_dict.items():
+		for key, value in self.resource_dict.items():
 			type_votes = []
 			for locale_key, locale_value in value.items():
 				if locale_key != "type":
-					type_votes.append(Main.get_type_from_locale(locale_value))
+					type_votes.append(self.get_type_from_locale(locale_value))
 
-			value["type"] = Main.vote_on_type(type_votes)
+			value["type"] = self.vote_on_type(type_votes)
 
 	def get_keys_from_dict(self, locale, str_path, key, value):
 		if len(str_path) > 0:
@@ -57,18 +58,18 @@ class YAMLProcessor(BasicProcessor):
 				self.get_keys_from_dict(locale, "{}.index_{}".format(str_path, i), key, value[0])
 
 		elif not isinstance(value, dict):
-			if str_path not in self.flat_dict:
-				self.flat_dict[str_path] = {
+			if str_path not in self.resource_dict:
+				self.resource_dict[str_path] = {
 					"type": "UNKNOWN"
 				}
-			entry_dict = self.flat_dict[str_path]
+			entry_dict = self.resource_dict[str_path]
 			entry_dict[locale] = value
 		else:
 			for key, value in value.items():
 				self.get_keys_from_dict(locale, str_path, key, value)
 
 	def add_file_to_dictionary(self, root, filename):
-		locale = Main.get_locale_from_filename(filename)
+		locale = self.get_locale_from_filename(filename)
 		path = os.path.join(root, filename)
 		file_obj = {
 			"filename": filename,
@@ -76,3 +77,22 @@ class YAMLProcessor(BasicProcessor):
 			"path": path
 		}
 		self.yamls[path] = file_obj
+
+	def process_files(self):
+		for root, dirs, files in os.walk(self.search_path):
+			for filename in files:
+				if self.is_yaml(filename):
+					self.add_file_to_dictionary(root, filename)
+
+		for key in self.yamls:
+			locale = self.yamls[key]["locale"]
+			if locale == "en":
+				print("path: {}".format(self.search_path))
+				path = self.yamls[key]["path"]
+				self.process(locale, path)
+
+	def is_yaml(self, filename):
+		if filename.endswith(".yml"):
+			return True
+
+		return False

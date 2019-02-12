@@ -1,6 +1,6 @@
-from src.processors.processor import Processor
+import re, os
 
-import os
+from src.processors.processor import Processor
 
 
 class Main:
@@ -19,26 +19,9 @@ class Main:
 		self.processor = Processor(self.engine_path)
 
 	def run(self):
-		for root, dirs, files in os.walk(self.engine_path):
-			for filename in files:
-				if self.is_yaml(filename):
-					self.add_file_to_dictionary(root, filename)
+		self.processor.process_files()
 
-		for key in self.yamls:
-			locale = self.yamls[key]["locale"]
-			if locale == "en":
-				path = self.yamls[key]["path"]
-				self.process_yaml(locale, path)
-
-		self.print_yamls()
-
-	@staticmethod
-	def get_locale_from_filename(filename):
-		result = Main.LOCALE_PATTERN.search(filename)
-		if result:
-			return result.group(0)
-		else:
-			return None
+		self.processor.print_output()
 
 
 if __name__ == "__main__":
